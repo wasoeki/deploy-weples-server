@@ -1,0 +1,6 @@
+# SURCHARGE CROSS ENV VARS FOR TESTING HOST
+# remote_servername: "testing.whenpeople.org"
+# remote_env: "testing"
+# remote_user: wopla
+# authorized_keys: |-
+#   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5wQeV7gdQIXSlJEINBDXztMp9rHftC2tOfJvDxBS/s was@x00

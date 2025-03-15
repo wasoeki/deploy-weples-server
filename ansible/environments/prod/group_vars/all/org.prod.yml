@@ -1,0 +1,4 @@
+---
+
+remote_user_priv_key: "{{ vault_remote_user_priv_key }}"
+remote_user_pub_key: "{{ vault_remote_user_pub_key }}"

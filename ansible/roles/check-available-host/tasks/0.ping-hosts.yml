@@ -1,0 +1,49 @@
+---
+
+- name: Find IP address
+  shell: |
+    if ping -c 1 {{ item }} &> /dev/null
+    then
+    	echo {{ item }}
+    fi
+  register: res
+  loop: "{{ groups[group_hosts] | map('extract', hostvars, ['ansible_host']) }}"
+
+- name: Find hostname from chosen IP address
+  shell: |
+    if [ "{{ item.1.stdout_lines[0] }}" = "{{ hostvars[item.0]['ansible_host'] }}" ] 
+    then
+    	echo {{ item.0 }}
+    fi
+  register: res2
+  when: item.1.stdout_lines | length == 7
+  with_together: 
+  - "{{ groups[group_hosts] }}"
+  - "{{ res.results }}"
+   
+# - name: DEBUG 1
+#   debug:
+#    msg:
+#    - "{{ res.results[0].stdout_lines | length }}"
+#    - "{{ res.results[1].stdout_lines | length }}"
+#    - "{{ res.results[1].stdout_lines | length == 7 }}"
+
+- name: Register chosen hostname if found
+  set_fact:
+    latest_host_found: "{{ item.stdout_lines[0] }}"
+    # cacheable: yes
+  when: item.stdout_lines is defined
+  loop: "{{ res2.results }}"
+
+# - name: Register empty hostname if not found
+#   set_fact:
+#      latest_host_found: ""
+#     #  cacheable: yes
+#   when: latest_host_found is not defined
+
+# - name: DEBUG 2
+#   debug:
+#    msg:
+#   #  - "{{ groups[group_hosts] }}"
+#   #  - "{{ groups[group_hosts][0] }}"
+#    - "{{ latest_host_found }}"

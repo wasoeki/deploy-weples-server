@@ -1,0 +1,14 @@
+---
+
+- name: Deploying generated SSH Key
+  authorized_key:
+    user: "{{ ssh_remote_user }}"
+    key: "{{ lookup('file', 'files/keys/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}.pub') }}"
+    state: present
+    exclusive: true
+
+- name: Adding team SSH Keys
+  shell: |
+    if ! grep -q "{{ authorized_keys }}" "/home/{{ ssh_remote_user }}/.ssh/authorized_keys"; then
+      echo "{{ authorized_keys }}" >> /home/{{ ssh_remote_user }}/.ssh/authorized_keys
+    fi

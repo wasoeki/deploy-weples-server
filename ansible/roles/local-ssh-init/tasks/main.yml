@@ -1,0 +1,2 @@
+- import_tasks: 0.gen-ssh-keys.yml
+- import_tasks: 1.reinit-registered-keys.yml

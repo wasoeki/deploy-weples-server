@@ -1,0 +1,5 @@
+---
+
+ssh_remote_user: user
+ssh_remote_hostname: server
+local_user: user

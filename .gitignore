@@ -1,0 +1,26 @@
+ansible/*.pass
+ansible/environments/**/vault/*.dec
+ansible/environments/**/*secrets*.dec
+ansible/files/keys/*
+**secrets/
+
+# Terraform files
+#**terraform*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+**.terraform.lock*
+
+# Directory for Terraform's workspace
+.terraform/
+
+# Terraform plan output
+*.tfplan
+
+# Local .terraform directories
+.terraform/*
+
+# .terraform directories that might be created by Terraform CLI
+**/.terraform/
+**/.terraform/*

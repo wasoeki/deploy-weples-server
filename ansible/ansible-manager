@@ -1,0 +1,108 @@
+#!/bin/bash
+default_dec_ext=".dec"
+
+me="ansible-manager"
+
+usage () {
+  cat <<EOF
+Usage:  $me -e [-f <folder>] [-x <decrypted-file-ext>]
+        $me -d [-f <folder>] [-x <decrypted-file-ext>]
+
+Gestion de l'arborescence des fichiers vars secrets par le chiffrement ou le déchiffrement des fichiers dans les dossiers "vault" d'un repo git ansible et la création de liens symboliques pour la mise en commun de ces vars entre environnements.
+
+Options :
+       *	Ce message d'aide
+       -e	 (Default)		Chiffre tous les fichiers ayant l'extension "${default_dec_ext}" ou celle donnée par -x dans les dossiers "vault".
+       -d		                Déchiffre tous les fichiers avec l'extension ".yml" ou ".ini" dans les dossiers "vault".
+       -f   "." (Default) Spécifier le dossier racine de vos playbooks ansible.
+       -x	"${default_dec_ext}" (Default)	Extension des fichiers en sortie lors du déchiffrement. Par défaut "${default_dec_ext}".
+
+EOF
+}
+
+while getopts edf:x: flag
+do
+  case "${flag}" in
+    e) vact="enc";;
+    d) vact="dec";;
+    f) vfolder=${OPTARG};;
+    x) vext=${OPTARG};;
+    \?) echo "Invalid option: -"$OPTARG"" >&2
+        usage
+        exit 1;;
+    : ) echo "Option -"$OPTARG" requires an argument." >&2
+        usage
+        exit 1;;
+  esac
+done
+
+# Encrypt vault and generate passwords
+encrypt_vault() {
+for file in $(tree "$ANSIBLE_FOLDER_PATH/environments/" -fiaFl | grep -v /$ | grep -iE ".yml${1}|.ini${1}" | grep -iE "vault|secrets" | grep -iEv "template|.enc|->")
+do
+    ./$ANSIBLE_FOLDER_PATH/scripts/ansible_vault_file_encrypt.sh -f "${file}" -d "${2}"
+    echo "${file%.*}"
+done
+}
+
+# Decrypt vault
+decrypt_vault() {
+for file in $(tree "$ANSIBLE_FOLDER_PATH/environments/" -fiaFl | grep -v /$ | grep -iE ".yml|.ini" | grep -iE "vault|secrets" | grep -iEv "template|${1}|->")
+do
+    ./$ANSIBLE_FOLDER_PATH/scripts/ansible_vault_file_decrypt.sh -f "${file}" -d "${2}"
+    echo "${file}${1}"
+done
+}
+
+# Main
+dec_ext="${vext:-${default_dec_ext}}"
+task="${vact:-enc}"
+INITIAL_PATH=$(pwd)
+ANSIBLE_FOLDER_PATH="${vfolder:-.}"
+
+case "$task" in
+    "enc"|"encryption")
+        encrypt_vault $dec_ext $vfolder
+        ;;
+    "dec"|"decryption")
+        decrypt_vault $dec_ext $vfolder
+        ;;
+    *)
+        echo "Invalid option : must encrypt or decrypt, cannot do none"
+        usage
+        exit 1
+        ;;    
+esac
+
+# Generate symbolic link
+for folder in $(ls "$ANSIBLE_FOLDER_PATH/environments")
+do
+    if ! [[ $folder == "all" ]]; then
+        for file in $(tree "$ANSIBLE_FOLDER_PATH/environments/all" -fiaF | grep -v /$ | grep -iE ".yml|.ini")
+        do 
+            newfile=$(echo $file | sed 's|environments/all|environments/'$folder'|g')
+            mkdir -p $(dirname $newfile)
+            nb_ret=$(($(echo $file | awk -F"/" '{print NF-1}')-1))
+            #echo $nb_ret
+            filepath=""
+            for i in $(seq 1 $nb_ret)
+            do
+                filepath="../${filepath}"
+                #echo $filepath
+            done
+            cd $(dirname $newfile)
+            #pwd
+            # Create a relative file path from link folder by removing ANSIBLE_FOLDER_PATH path and adding ../...
+            relfile=$(echo $file | sed 's|'$ANSIBLE_FOLDER_PATH'/environments|environments|g')
+            if [[ -f "$filepath""$relfile" ]]; then
+                ln -sf "$filepath""$relfile" $(basename $newfile)
+                echo -e "Link generation successful\n$newfile"
+            else
+                echo -e "Link generation failed\n"$filepath""$relfile" does not exist"
+            fi
+            cd $INITIAL_PATH
+            #pwd
+        done
+    fi
+done
+

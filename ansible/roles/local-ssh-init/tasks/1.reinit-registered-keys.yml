@@ -1,0 +1,5 @@
+---
+
+- name: Remove old registered remote keys
+  command: ssh-keygen -f "/home/{{ local_user }}/.ssh/known_hosts" -R "{{ item }}"
+  loop: "{{ groups['all'] }}"

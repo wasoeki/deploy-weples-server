@@ -1,0 +1,12 @@
+- hosts: localhost
+  remote_user: "{{ local_user }}"
+  connection: local
+  roles:
+  - { role: local-ssh-init, ssh_remote_user: "{{ remote_user }}", ssh_remote_hostname: "{{ remote_servername }}" }
+  
+- hosts:
+    - "{{ hostvars[groups['all'][0]]['remote_env'] }}"
+  become: yes
+  roles:
+  - { role: remote-ssh-init, ssh_remote_user: "{{ remote_user }}", ssh_remote_hostname: "{{ remote_servername }}" }
+

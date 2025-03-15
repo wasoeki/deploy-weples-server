@@ -1,0 +1,6 @@
+# SURCHARGE CROSS ENV VARS FOR DEV HOST
+# remote_servername: "dev.whenpeople.org"
+# remote_env: "dev"
+# remote_user: wopla
+# authorized_keys: |-
+#   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5wQeV7gdQIXSlJEINBDXztMp9rHftC2tOfJvDxBS/s was@x00

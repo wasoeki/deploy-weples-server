@@ -1,0 +1,39 @@
+#!/bin/bash
+# You must give an encrypted password if you use the option -p
+set -x
+
+while getopts i:p:u: flag
+do
+  case "${flag}" in
+    i) env=${OPTARG};;
+    p) enc_pass=${OPTARG};;
+    u) user=${OPTARG};;
+    \?) echo "Invalid option: -"$OPTARG"" >&2
+        exit 1;;
+    : ) echo "Option -"$OPTARG" requires an argument." >&2
+        exit 1;;
+  esac
+done
+
+
+ENV="${env:-prod}"
+DEFAULT_USER="$()"
+if [ -z "$user" ]; then
+    user="${DEFAULT_USER:-user}"
+fi
+if [ -z "$enc_pass" ]; then
+  PASS="$(pwgen 128 1 | base64 | tr -d '[:blank:]\n')"
+  echo "$PASS" > "${HOME}/.${user}.${ENV}.pass"
+  chmod 600 "${HOME}/.${user}.${ENV}.pass"
+  SPECHAR_ENC_PASS="$(cat ${HOME}/.${user}.${ENV}.pass | openssl passwd -6 --stdin)"
+  enc_pass="$(printf '%q' "${SPECHAR_ENC_PASS}")"
+fi
+
+
+useradd -m -d "/home/${user}" -s "/bin/bash" -p "${enc_pass}" "${user}"; 
+mkdir -p "/home/${user}/.ssh"; 
+curl "https://raw.githubusercontent.com/hashicorp/vagrant/refs/heads/main/keys/vagrant.pub" > "/home/${user}/.ssh/authorized_keys"; 
+chown -R "${user}:${user}" "/home/${user}"
+chmod 700 "/home/${user}/.ssh"
+chmod 600 "/home/${user}/.ssh/authorized_keys"
+usermod -a -G sudo "${user}"

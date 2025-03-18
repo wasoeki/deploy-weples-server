@@ -2,8 +2,8 @@
 
 - name: Generate SSH key
   openssh_keypair:
-    #path: "~/.ssh/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}"
-    path: "files/keys/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}"
+    path: "~/.ssh/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}"
+    # path: "files/keys/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}"
     type: ed25519
     state: present
     force: no

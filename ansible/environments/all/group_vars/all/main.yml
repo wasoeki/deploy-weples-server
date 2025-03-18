@@ -5,7 +5,7 @@ remote_user: wopla
 remote_instance_version: "v{{ now(utc=true,fmt='%Y%m%d%H%M%S') }}"
 the_old_host: postinst
 the_new_host: "{{ remote_env }}"
-ansible_become_password_file: ".{{ remote_env }}.pass"
+ansible_become_password_file: ".{{ remote_user }}.{{ remote_env }}.pass"
 ansible_become_pass: "{{  lookup('file', ansible_become_password_file) }}"
 authorized_keys: |-
   ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA5wQeV7gdQIXSlJEINBDXztMp9rHftC2tOfJvDxBS/s was@x00

@@ -3,7 +3,8 @@
 - name: Deploying generated SSH Key
   authorized_key:
     user: "{{ ssh_remote_user }}"
-    key: "{{ lookup('file', 'files/keys/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}.pub') }}"
+    # key: "{{ lookup('file', 'files/keys/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}.pub') }}"
+    key: "{{ lookup('file', '~/.ssh/{{ ssh_remote_user }}@{{ ssh_remote_hostname }}.pub') }}"
     state: present
     exclusive: true
 

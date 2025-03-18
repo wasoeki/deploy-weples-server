@@ -1,4 +1,16 @@
 ## Prerequisites
+- `expect`
+- `vagrant`
+- `pwgen`
+
+### Custom functions
+
+Copy the content of a file to the clipboard
+```shell
+echo "copy(){ cat \$1 | xclip -selection c; };" >> ~/.bashrc
+source ~/.bashrc
+```
+
 ### (Optionnal) Terraform
 - `terraform`
 ```shell
@@ -93,7 +105,7 @@ git init -b dev
 git remote add origin https://$GITHUB_USER:$GITHUB_TOKEN@github.com/wasoeki/deploy-weples-server.git
 cd ansible
 ansible-manager -e
-cd ..
+cd ..an
 git add .
 git add **\.enc -f
 git commit -m "init"
@@ -112,4 +124,70 @@ cp /tmp/.*.pass .
 
 # Decrypt the secrets
 ansible-manager -d
+```
+
+### Common manual command lines
+
+#### First SSH connection
+Get necessary vars
+```shell
+# You must be at the root of the git repo
+cd ansible
+# Establish first ssh connection
+REMOTE_USER="$(yq '.remote_user' environments/all/group_vars/all/main.yml | tr -d '"')"
+user=${REMOTE_USER:-user}
+PASS="$(pwgen 128 1 | base64 | tr -d '[:blank:]\n')"
+echo "$PASS" > ".${user}.${ENV}.pass"
+chmod 600 ".${user}.${ENV}.pass"
+SPECHAR_ENC_PASS="$(cat .${user}.${ENV}.pass | openssl passwd -6 --stdin)"
+enc_pass="$(printf '%q' "${SPECHAR_ENC_PASS}")"
+
+IP_ADDR=$(yq '.webui.hosts.'$ENV'.ansible_host' environments/$ENV/hosts.yml | tr -d '"')
+```
+
+One liner to create user
+```shell
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$IP_ADDR"
+expect << EOF
+  spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new root@${IP_ADDR:-127.0.0.1} "sh -c 'useradd -m -d /home/${user} -s /bin/bash -p ${enc_pass} ${user}; mkdir -p /home/${user}/.ssh; curl https://raw.githubusercontent.com/hashicorp/vagrant/refs/heads/main/keys/vagrant.pub > /home/${user}/.ssh/authorized_keys; chown -R ${user}:${user} /home/${user}/.ssh; chmod 700 /home/${user}/.ssh; chmod 600 /home/${user}/.ssh/authorized_keys; usermod -a -G sudo ${user}'"
+  expect "password"
+  send "$(cat .${ENV}.pass)\r"
+  expect eof
+EOF
+```
+Remove the new user
+```shell
+expect << EOF
+  spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new root@${IP_ADDR:-127.0.0.1} "sh -c 'userdel -r ${user}'"
+  expect "password"
+  send "$(cat .${ENV}.pass)\r"
+  expect eof
+EOF
+```
+
+Via script to create user
+```shell
+# You must be at the root of the git repo
+cd ansible
+# Establish first ssh connection
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$IP_ADDR"
+expect << EOF
+  spawn scp -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new scripts/newuser root@${IP_ADDR:-127.0.0.1}:/bin/
+  expect "password"
+  send "$(cat .${ENV}.pass)\r"
+  expect eof
+EOF
+expect << EOF
+  spawn ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no -o StrictHostKeyChecking=accept-new root@${IP_ADDR:-127.0.0.1} "newuser -u ${user} -p ${enc_pass}"
+  expect "password"
+  send "$(cat .${ENV}.pass)\r"
+  expect eof
+EOF
+```
+
+#### Test SSH connection with new user
+```shell
+copy ".${user}.${ENV}.pass"
+ssh -o IdentitiesOnly=yes -i ~/.vagrant.d/insecure_private_key "${user}@${IP_ADDR:-127.0.0.1}" -t sudo -s
+# Then paste the content of your clipboard (Ctrl+Maj+V)
 ```

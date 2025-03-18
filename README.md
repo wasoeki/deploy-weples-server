@@ -145,7 +145,7 @@ enc_pass="$(printf '%q' "${SPECHAR_ENC_PASS}")"
 IP_ADDR=$(yq '.webui.hosts.'$ENV'.ansible_host' environments/$ENV/hosts.yml | tr -d '"')
 ```
 
-One liner to create user
+One liner to create user (not working for the password because of `expect` not handling special chars like `$` inside the `spawn` command line)
 ```shell
 ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$IP_ADDR"
 expect << EOF

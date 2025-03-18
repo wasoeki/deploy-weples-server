@@ -36,24 +36,51 @@ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://
 sudo apt update && sudo apt install terraform
 ```
 
-### Ansible Manager
+### Secrets Manager
 
 Add it to your PATH
 ```shell
 # No root privilege necessary
+# You must be at the root of the git repo
 
 mkdir -p "$HOME/.local/bin"
 if [ -d "$HOME/.local/bin" ] && ! $(echo "$PATH" | grep -oEq "$HOME/.local/bin") ; then
     echo "export PATH='\$HOME/.local/bin:\$PATH';" >> ~/.bashrc
     source ~/.bashrc
 fi
+install secrets-manager "$HOME/.local/bin/"
+
+# or
+
+# With root privilege
+# You must be at the root of the git repo
+
+# export PATH=$PATH:$PWD:/usr/local/bin
+# sudo install secrets-manager /usr/local/bin/
+```
+
+### Ansible Manager
+
+Add it to your PATH
+```shell
+# No root privilege necessary
+# You must be at the root of the git repo
+
+mkdir -p "$HOME/.local/bin"
+if [ -d "$HOME/.local/bin" ] && ! $(echo "$PATH" | grep -oEq "$HOME/.local/bin") ; then
+    echo "export PATH='\$HOME/.local/bin:\$PATH';" >> ~/.bashrc
+    source ~/.bashrc
+fi
+cd ansible
 install ansible-manager "$HOME/.local/bin/"
 
 # or
 
 # With root privilege
+# You still must be at the root of the git repo
 
 # export PATH=$PATH:$PWD:/usr/local/bin
+# cd ansible
 # sudo install ansible-manager /usr/local/bin/
 ```
 

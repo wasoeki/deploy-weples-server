@@ -1,0 +1,11 @@
+- name: Get environments facts
+  hosts: localhost
+  remote_user: "{{ local_user }}"
+  connection: local
+
+- hosts:
+    - "{{ hostvars[groups['all'][0]]['remote_env'] }}"
+  become: yes
+  roles:
+  - { role: configure-vm, ssh_user: "{{ remote_user }}", ssh_identity_key: "~/.ssh/{{ remote_user }}@{{ remote_servername }}.pub" }
+

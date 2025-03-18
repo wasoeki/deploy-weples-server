@@ -1,0 +1,16 @@
+---
+packages:
+# The essentials
+  - libguestfs-tools
+  - jq
+  - yq
+  - sudo
+  - libgl1 
+  - libegl1
+  - inxi
+  - ncdu
+  - curl
+# For container VMs
+  - docker
+  - podman
+  - podman-compose

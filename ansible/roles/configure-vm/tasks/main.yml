@@ -1,0 +1,16 @@
+---
+- name: Install a list of packages
+  ansible.builtin.apt:
+    pkg: "{{ packages }}"
+  tags:
+    - essentials
+    - security_ssh_hardening
+
+- name: Strengthening the SSH security of the server
+  ansible.builtin.include_tasks:
+    file: security_ssh_hardening.yml
+    apply:
+      tags:
+        - security_ssh_hardening
+  tags:
+    - always

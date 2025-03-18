@@ -1,4 +1,4 @@
-ansible/*.pass
+**.pass
 ansible/environments/**/vault/*.dec
 ansible/environments/**/*secrets*.dec
 ansible/files/keys/*

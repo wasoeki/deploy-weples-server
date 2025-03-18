@@ -96,16 +96,18 @@ source ~/.bashrc
 ```
 
 
-
 ### Creating repository
 
-Just make sure to put all secrets inside a `vault` directory and then execute the following commands
+Just make sure to put all secrets inside a `vault` (for ansible) or a `secrets` directory and then execute the following commands
 
 ```shell
 # You must be at the root of the git repo
-
 rootpath=$(pwd)
 
+# To encrypt github specific secrets
+secrets-manager -e -t github
+
+# Then ansible specific secrets
 cd ansible
 # Encrypt the secrets
 ansible-manager -e
@@ -132,7 +134,7 @@ git init -b dev
 git remote add origin https://$GITHUB_USER:$GITHUB_TOKEN@github.com/wasoeki/deploy-weples-server.git
 cd ansible
 ansible-manager -e
-cd ..an
+cd ..
 git add .
 git add **\.enc -f
 git commit -m "init"
@@ -145,8 +147,12 @@ git push --set-upstream origin dev
 
 ```shell
 # You must be at the root of the git repo
+# Ask a collegue to get the correct pass file inside your /tmp directory
+cp /tmp/.deploy-weples-server.secrets.pass .
+secrets-manager -d -t github
+
 cd ansible
-# Ask a collegue to get the correct passfile inside your /tmp directory
+# Ask a collegue to get the correct passfiles inside your /tmp directory
 cp /tmp/.*.pass .
 
 # Decrypt the secrets

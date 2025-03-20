@@ -1,0 +1,9 @@
+apps:
+  - stack: app-setup
+    org: org
+    domain: app.example.com
+    git: https://github.com/example/example.git
+    options: "reverse-proxy app"
+    passfile:
+      name: .app.secrets.pass
+      secret: er9iePh2Jie1wuthaipaiHai8chahgh1coong6Jieb3bi8Xaj1ANeiVai5bahboj

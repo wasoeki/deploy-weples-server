@@ -6,6 +6,14 @@
     - essentials
     - security_ssh_hardening
 
+- name: Ensure .bashrc contains extra config
+  ansible.builtin.blockinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    block: "{{ lookup('ansible.builtin.file', 'bashrc_extra') }}"
+    state: present
+  tags:
+    - always
+
 - name: Strengthening the SSH security of the server
   ansible.builtin.include_tasks:
     file: security_ssh_hardening.yml

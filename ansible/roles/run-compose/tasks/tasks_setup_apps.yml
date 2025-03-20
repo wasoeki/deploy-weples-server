@@ -1,0 +1,74 @@
+---
+## Create the app directory
+- name: Ensure {{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }} dir exists
+  file: 
+    path: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}"
+    state: directory
+
+## Clone repo
+- name: Clone {{ item.stack }} git repo
+  ansible.builtin.git:
+    repo: "{{ item.git }}"
+    dest: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git"
+
+## Create passfile
+- name: Go to local git repo and create passfile {{ item.passfile.name }}
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git"
+    cmd: |
+      echo "{{ item.passfile.secret }}" > "{{ item.passfile.name }}"
+      chmod 0600 "{{ item.passfile.name }}"
+  changed_when: false
+
+## Decrypt secrets in the git repo
+- name: Update secrets-manager and decrypt secrets iniside compose dir
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git"
+    cmd: |
+      chmod +x secrets-manager
+      mkdir -p "{{ ansible_env.HOME }}/.local/bin"
+      if [ -d "{{ ansible_env.HOME }}/.local/bin" ] && ! $(echo "{{ ansible_env.PATH }}" | grep -oEq "{{ ansible_env.HOME }}/.local/bin") ; then
+          echo "export PATH='{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}';" >> {{ ansible_env.HOME }}/.bashrc
+          export PATH='{{ ansible_env.HOME }}/.local/bin:{{ ansible_env.PATH }}'
+      fi
+      install secrets-manager "{{ ansible_env.HOME }}/.local/bin/"
+      secrets-manager -d -t compose
+  changed_when: false
+
+- name: Get needed external networks from compose file
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
+    cmd: |
+      yq '(.networks[] | select(.external == true) | .name)' "compose.yml" | tr -d '"'
+  register: extnet
+  changed_when: false
+  
+- name: Get current external networks on host
+  ansible.builtin.shell:
+    cmd: |
+      sudo -E docker network ls --format 'json' | jq '.Name' | tr -d '"' | paste -s
+    # shell: |
+    #   podman network ls --format 'json' | jq '.[].name' | tr -d '"' | paste -s
+  register: allnets
+  changed_when: false
+
+- name: Create external networks if not yet present
+  ansible.builtin.command:
+    cmd: |
+      sudo -E docker network create "{{ item }}"
+  loop: "{{ extnet.stdout | split('\n') }}"
+  when: item not in allnets.stdout
+  changed_when: false
+
+## Compose up
+- name: Go to local git repo compose dir and compose up {{ item.stack }} --detach {{ item.options }}
+  ansible.builtin.command:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
+    cmd: |
+      sudo -E docker compose up --detach {{ item.options }}
+    # cmd: |
+    #   podman-compose up --detach {{ item.options }}
+  changed_when: false
+
+
+

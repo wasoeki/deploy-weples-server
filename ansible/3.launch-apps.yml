@@ -1,0 +1,10 @@
+- name: Get environments facts
+  hosts: localhost
+  remote_user: "{{ local_user }}"
+  connection: local
+
+- hosts:
+    - "{{ hostvars[groups['all'][0]]['remote_env'] }}"
+  roles:
+  - { role: run-compose, apps: "{{ compose_apps }}" }
+

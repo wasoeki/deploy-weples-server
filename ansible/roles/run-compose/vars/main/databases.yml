@@ -1,0 +1,22 @@
+databases:
+  - name: mariadb
+    cmd:
+      before:
+      backup: | 
+        mariadb-dump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
+      restore:
+      after:
+  - name: mysql
+    cmd:
+      before:
+      backup: | 
+        mysqldump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
+      restore:
+      after:
+  - name: postgres
+    cmd:
+      before:
+      backup: |
+        PGPASSWORD="\${POSTGRES_PASSWORD}" pg_dump -h ${CONTAINER_HOSTNAME} -U \${POSTGRES_USER} -d \${POSTGRES_DB} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.sql
+      restore:
+      after:

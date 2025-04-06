@@ -1,0 +1,94 @@
+---
+- name: Put {{ item.1.name }} database info in current_db fact
+  set_fact:
+    current_db: "{{ item.1 }}"
+  tags:
+    - backup_db
+  
+- name: Get needed {{ item.1.name }} volumes from {{ item.0.stack }} compose file
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose"
+    # Command to know for each service if it contains a {{ item.1.name }} image
+    # Could not map 2 arrays in a key:value way, so items with the same key must be linked
+    # yq '.services | (keys | to_entries) + ([.[].image | test("{{ item.1.name }}*")] | to_entries)' compose.yml | tr -d '"'
+    # Better one
+    # yq --yaml-output '.services | to_entries | .[] | { (.key) : (.value.image | test("{{ item.1.name }}*")) }' compose.yml
+    # To just output the path to shared volumes inside DB container
+    # yq -y '[.services[] | select(.image | test("{{ item.1.name }}*")) | .volumes[0] | split(":")[1]]' compose.yml
+    # To get all data desired in a YAML array
+    # yq '[.services | to_entries | .[] | select(.value.image | test("{{ item.1.name }}*")) | { (.key) : "\(.value.container_name),\(.value.volumes[0] | split(":")[1])" }]' compose.yml
+    cmd: |
+      yq '.services | to_entries | .[] | select(.value.image | test("{{ item.1.name }}*")) | "\(.key),\(.value.container_name),\(.value.volumes[0] | split(":")[1])"' compose.yml | tr -d '"'
+  register: vols
+  changed_when: false
+  tags:
+    - backup_db
+
+- name: Show {{ current_db.name }} volumes in {{ item.0.stack }}
+  debug:
+    msg: "All {{ current_db.name | upper }} databases in {{ item.0.stack | upper }} compose file : {{ vols.stdout | split('\n') }}"
+  tags:
+    - backup_db
+
+# - name: Get env file content
+#   slurp:
+#     src: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose/.env"
+#   register: env_file_content
+#   tags:
+#     - backup_db
+
+# - name: Parse environment file content
+#   set_fact:
+#     env_vars: "{{ (env_file_content.content | b64decode).split('\n') | map('regex_replace', '^#.*', '') | select | map('regex_replace', '([^=]*)=(.*)', '\\1: \\2') | join('\n') | from_yaml }}"
+#   tags:
+#     - backup_db
+
+# - name: Get env file result
+#   shell:
+#     chdir: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose"
+#     cmd: |
+#       . ./.env && env
+#   register: env_file_result
+#   tags:
+#     - backup_db
+
+# - name: Parse environment file result
+#   set_fact:
+#     env_vars: "{{ ('{' + env_file_result.stdout_lines | map('regex_replace', '([^=]*)=(.*)', '\"\\1\": \"\\2\"') | join(',') + '}') | from_json }}"
+#   tags:
+#     - backup_db
+
+# - name: Display environment variables
+#   debug:
+#     msg: "env : {{ env_vars }}"
+#   tags:
+#     - backup_db
+
+- name: Backup {{ current_db.name }} databases
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose"
+    cmd: |
+      . ./.env
+      CONTAINER_HOSTNAME="{{ vl | split(',') | first }}"
+      CONTAINER_NAME="{{ (vl | split(','))[1] }}"
+      CONTAINER_SHARED_VOLUME="{{ vl | split(',') | last }}"
+      sudo -E docker exec --env-file .env "${CONTAINER_NAME}" sh -c "{{ current_db.cmd.backup }}"
+      sudo -E docker exec --env-file .env "${CONTAINER_NAME}" sh -c "ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}*"
+  # environment: "{{ env_vars }}"
+  register: db_backup_files
+  when: "{{ vols.stdout | length > 0 }}"
+  loop: "{{ vols.stdout | split('\n') }}"
+  loop_control:
+    loop_var: vl
+  tags:   
+    - backup_db
+
+- name: Show {{ current_db.name }} databases backup files
+  debug:
+    msg: "All {{ current_db.name | upper }} databases backup files for {{ item.0 | split(',') | first | upper }} hostname : {{ item.1.stdout }}"
+  when: "{{ vols.stdout | length > 0 }}"
+  with_together: 
+  - "{{ vols.stdout | split('\n') }}"
+  - "{{ db_backup_files.results }}"
+  tags:
+    - backup_db

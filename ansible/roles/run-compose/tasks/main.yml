@@ -23,3 +23,12 @@
   loop: "{{ apps }}"
   tags:
     - setup_apps
+
+## Execute compose db backups for all apps given
+- name: Execute compose db backups
+  ansible.builtin.include_tasks: backup_databases.yml
+  with_nested: 
+  - "{{ apps }}"
+  - "{{ databases }}"
+  tags:
+    - backup_db

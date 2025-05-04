@@ -10,12 +10,12 @@
     - restore
 
 ## Compose down
-- name: Go to local git repo compose dir and compose down {{ item.stack }} --detach {{ item.options }}
-  ansible.builtin.command:
+- name: Go to local git repo compose dir and compose down {{ item.stack }}
+  ansible.builtin.shell:
     chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
     cmd: |
       if sudo docker ps | grep {{ item.stack }} -q; then
-        sudo -E docker compose down --detach {{ item.options }}
+        sudo -E docker compose down
       fi
   when: dir_path.stat.exists
   changed_when: false
@@ -26,6 +26,7 @@
 
 ## Remove the app directory to replace it
 - name: Ensure {{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }} is removed
+  become: true
   file: 
     path: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}"
     state: absent

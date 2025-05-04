@@ -3,7 +3,8 @@
   set_fact:
     current_app: "{{ item }}"
   tags:
-    - restore_db
+    - restore_apps
+    - restore
 
 # - name: Prerequisites before {{ current_app.stack }} app restoration
 #   ansible.builtin.shell:
@@ -16,7 +17,8 @@
 #   loop_control:
 #     loop_var: before
 #   tags:   
-#     - restore_db
+#     - restore_apps
+#     - restore
 
 - name: Restore {{ current_app.stack }} app
   ansible.builtin.shell:
@@ -30,7 +32,8 @@
   loop_control:
     loop_var: restore
   tags:   
-    - restore_db
+    - restore_apps
+    - restore
 
 - name: Show {{ current_app.stack }} restore dir
   debug:
@@ -39,7 +42,8 @@
   loop_control:
     loop_var: dir
   tags:
-    - restore_db
+    - restore_apps
+    - restore
 
 # - name: Prerequisites after {{ current_app.stack }} app restoration
 #   ansible.builtin.shell:
@@ -52,4 +56,5 @@
 #   loop_control:
 #     loop_var: after
 #   tags:   
-#     - restore_db
+#     - restore_apps
+#     - restore

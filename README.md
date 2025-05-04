@@ -224,3 +224,11 @@ copy ".${user}.${ENV}.pass"
 ssh -o IdentitiesOnly=yes -i ~/.vagrant.d/insecure_private_key "${user}@${IP_ADDR:-127.0.0.1}" -t sudo -s
 # Then paste the content of your clipboard (Ctrl+Maj+V)
 ```
+
+### Restore backup files 
+
+```shell
+scp -i ~/.ssh/$SSH_KEY "${LOCAL_BAK_FILE}" "${user}@${IP_ADDR:-127.0.0.1}:~/srv/${ORG_NAME}/${STACK_NAME}/${DB_DIR}/${ORG_NAME}_${STACK_NAME}_${DB_SOFTWARE}-sqlbkp_`date +"%Y%m%d"`.bak"
+
+rsync -av -e "ssh -p $SSH_PORT -i ~/.ssh/$SSH_KEY" "${user}@${IP_ADDR:-127.0.0.1}:~/srv/${ORG_NAME}/${STACK_NAME}/" "/data/backup/${ORG_NAME}_${STACK_NAME}-`date +"%Y%m%d"`.bak.d/"
+```

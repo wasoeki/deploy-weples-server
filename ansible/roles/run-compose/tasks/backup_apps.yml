@@ -1,0 +1,55 @@
+---
+- name: Put {{ item.stack }} app info in current_app fact
+  set_fact:
+    current_app: "{{ item }}"
+  tags:
+    - backup_apps
+
+# - name: Prerequisites before {{ current_app.stack }} app backup
+#   ansible.builtin.shell:
+#     chdir: "{{ ansible_env.HOME }}/srv/{{ current_app.org }}/{{ current_app.stack }}/git/compose"
+#     cmd: |
+#       . ./.env
+#       {{ before.action }}
+#       {{ before.check }}
+#   loop: "{{ current_app.cmd.maintenance.before }}"
+#   loop_control:
+#     loop_var: before
+#   tags:   
+#     - backup_apps
+
+- name: Backup {{ current_app.stack }} app
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ current_app.org }}/{{ current_app.stack }}/git/compose"
+    cmd: |
+      . ./.env
+      {{ backup.action }}
+      {{ backup.check }}
+  register: app_backup_dirs
+  loop: "{{ current_app.cmd.maintenance.backup }}"
+  loop_control:
+    loop_var: backup
+  tags:   
+    - backup_apps
+
+- name: Show {{ current_app.stack }} backup dirs
+  debug:
+    msg: "All {{ current_app.stack | upper }} backup directories : {{ dirs.stdout }}"
+  loop: "{{ app_backup_dirs.results }}"
+  loop_control:
+    loop_var: dirs
+  tags:
+    - backup_apps
+
+# - name: Prerequisites after {{ current_app.stack }} app backup
+#   ansible.builtin.shell:
+#     chdir: "{{ ansible_env.HOME }}/srv/{{ current_app.org }}/{{ current_app.stack }}/git/compose"
+#     cmd: |
+#       . ./.env
+#       {{ after.action }}
+#       {{ after.check }}
+#   loop: "{{ current_app.cmd.maintenance.after }}"
+#   loop_control:
+#     loop_var: after
+#   tags:   
+#     - backup_apps

@@ -1,15 +1,54 @@
 ---
+## Check dir to make sure we can compose down
+- name: Check if dir exists
+  stat:
+    path: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
+  register: dir_path
+  tags:
+    - never
+    - restore_apps
+    - restore
+
+## Compose down
+- name: Go to local git repo compose dir and compose down {{ item.stack }} --detach {{ item.options }}
+  ansible.builtin.command:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
+    cmd: |
+      if sudo docker ps | grep {{ item.stack }} -q; then
+        sudo -E docker compose down --detach {{ item.options }}
+      fi
+  when: dir_path.stat.exists
+  changed_when: false
+  tags:
+    - never
+    - restore_apps
+    - restore
+
+## Remove the app directory to replace it
+- name: Ensure {{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }} is removed
+  file: 
+    path: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}"
+    state: absent
+  tags:
+    - never
+    - restore_apps
+    - restore
+
 ## Create the app directory
 - name: Ensure {{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }} dir exists
   file: 
     path: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}"
     state: directory
+  tags:
+    - setup_apps
 
 ## Clone repo
 - name: Clone {{ item.stack }} git repo
   ansible.builtin.git:
     repo: "{{ item.git }}"
     dest: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git"
+  tags:
+    - setup_apps
 
 ## Create passfile
 - name: Go to local git repo and create passfile {{ item.passfile.name }}
@@ -19,6 +58,8 @@
       echo "{{ item.passfile.secret }}" > "{{ item.passfile.name }}"
       chmod 0600 "{{ item.passfile.name }}"
   changed_when: false
+  tags:
+    - setup_apps
 
 ## Decrypt secrets in the git repo
 - name: Update secrets-manager and decrypt secrets iniside compose dir
@@ -34,6 +75,8 @@
       install secrets-manager "{{ ansible_env.HOME }}/.local/bin/"
       secrets-manager -d -t compose
   changed_when: false
+  tags:
+    - setup_apps
 
 - name: Get needed external networks from compose file
   ansible.builtin.shell:
@@ -42,6 +85,8 @@
       yq '(.networks[] | select(.external == true) | .name)' "compose.yml" | tr -d '"'
   register: extnet
   changed_when: false
+  tags:
+    - setup_apps
   
 - name: Get current external networks on host
   ansible.builtin.shell:
@@ -51,6 +96,8 @@
     #   podman network ls --format 'json' | jq '.[].name' | tr -d '"' | paste -s
   register: allnets
   changed_when: false
+  tags:
+    - setup_apps
 
 - name: Create external networks if not yet present
   ansible.builtin.command:
@@ -59,6 +106,16 @@
   loop: "{{ extnet.stdout | split('\n') }}"
   when: item not in allnets.stdout
   changed_when: false
+  tags:
+    - setup_apps
+
+## Execute compose apps restorations for all apps given
+- name: Execute compose apps restorations
+  ansible.builtin.include_tasks: restore_apps.yml
+  tags:
+    - never
+    - restore_apps
+    - restore
 
 ## Compose up
 - name: Go to local git repo compose dir and compose up {{ item.stack }} --detach {{ item.options }}
@@ -69,6 +126,8 @@
     # cmd: |
     #   podman-compose up --detach {{ item.options }}
   changed_when: false
+  tags:
+    - setup_apps
 
 
 

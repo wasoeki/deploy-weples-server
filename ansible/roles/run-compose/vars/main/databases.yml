@@ -4,19 +4,22 @@ databases:
       before:
       backup: | 
         mariadb-dump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
-      restore:
+      restore: |
+        ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_*.bak | head -1 | xargs -I {} mariadb -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} < {}
       after:
   - name: mysql
     cmd:
       before:
       backup: | 
         mysqldump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
-      restore:
+      restore: |
+        ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_*.bak | head -1 | xargs -I {} mysql -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} < {}
       after:
   - name: postgres
     cmd:
       before:
       backup: |
         PGPASSWORD="\${POSTGRES_PASSWORD}" pg_dump -h ${CONTAINER_HOSTNAME} -U \${POSTGRES_USER} -d \${POSTGRES_DB} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.sql
-      restore:
+      restore: |
+        ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_*.sql | head -1 | xargs -I {} PGPASSWORD="\${POSTGRES_PASSWORD}" psql -h ${CONTAINER_HOSTNAME} -U \${POSTGRES_USER} -d \${POSTGRES_DB} -f {}
       after:

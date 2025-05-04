@@ -1,0 +1,50 @@
+---
+- name: Put {{ item.1.name }} database info in current_db fact
+  set_fact:
+    current_db: "{{ item.1 }}"
+  tags:
+    - restore_db
+  
+- name: Get needed {{ item.1.name }} volumes from {{ item.0.stack }} compose file
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose"
+    cmd: |
+      yq '.services | to_entries | .[] | select(.value.image | test("{{ item.1.name }}*")) | "\(.key),\(.value.container_name),\(.value.volumes[0] | split(":")[1])"' compose.yml | tr -d '"'
+  register: vols
+  changed_when: false
+  tags:
+    - restore_db
+
+- name: Show {{ current_db.name }} volumes in {{ item.0.stack }}
+  debug:
+    msg: "All {{ current_db.name | upper }} databases in {{ item.0.stack | upper }} compose file : {{ vols.stdout | split('\n') }}"
+  tags:
+    - restore_db
+
+- name: Restore {{ current_db.name }} databases
+  ansible.builtin.shell:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.0.org }}/{{ item.0.stack }}/git/compose"
+    cmd: |
+      . ./.env
+      CONTAINER_HOSTNAME="{{ vl | split(',') | first }}"
+      CONTAINER_NAME="{{ (vl | split(','))[1] }}"
+      CONTAINER_SHARED_VOLUME="{{ vl | split(',') | last }}"
+      sudo -E docker exec --env-file .env "${CONTAINER_NAME}" sh -c "{{ current_db.cmd.restore }}"
+      sudo -E docker exec --env-file .env "${CONTAINER_NAME}" sh -c "ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}*"
+  register: db_backup_files
+  when: "{{ vols.stdout | length > 0 }}"
+  loop: "{{ vols.stdout | split('\n') }}"
+  loop_control:
+    loop_var: vl
+  tags:   
+    - restore_db
+
+- name: Show {{ current_db.name }} databases backup files
+  debug:
+    msg: "All {{ current_db.name | upper }} databases backup files for {{ item.0 | split(',') | first | upper }} hostname : {{ item.1.stdout }}"
+  when: "{{ vols.stdout | length > 0 }}"
+  with_together: 
+  - "{{ vols.stdout | split('\n') }}"
+  - "{{ db_backup_files.results }}"
+  tags:
+    - restore_db

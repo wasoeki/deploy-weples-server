@@ -23,6 +23,8 @@
   loop: "{{ apps }}"
   tags:
     - setup_apps
+    - restore_apps
+    - restore
 
 ## Execute compose db backups for all apps given
 - name: Execute compose db backups
@@ -31,4 +33,26 @@
   - "{{ apps }}"
   - "{{ databases }}"
   tags:
+    - never
     - backup_db
+    - backup
+
+## Execute compose app backups for all apps given
+- name: Execute compose apps backups
+  ansible.builtin.include_tasks: backup_apps.yml
+  loop: "{{ apps }}"
+  tags:
+    - never
+    - backup_apps
+    - backup
+
+## Execute compose db restorations for all apps given
+- name: Execute compose db restorations
+  ansible.builtin.include_tasks: restore_databases.yml
+  with_nested: 
+  - "{{ apps }}"
+  - "{{ databases }}"
+  tags:
+    - never
+    - restore_db
+    - restore

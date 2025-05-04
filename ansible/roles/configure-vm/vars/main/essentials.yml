@@ -10,6 +10,7 @@ packages:
   - inxi
   - ncdu
   - curl
+  - rsync
 # For container VMs
   - docker
   - podman

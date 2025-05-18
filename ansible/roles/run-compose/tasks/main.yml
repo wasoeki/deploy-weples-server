@@ -25,6 +25,8 @@
     - setup_apps
     - restore_apps
     - restore
+    - remove_existing_containers
+    - remove_unused_images
 
 ## Execute compose db backups for all apps given
 - name: Execute compose db backups

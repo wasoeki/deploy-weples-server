@@ -8,6 +8,7 @@
     - never
     - restore_apps
     - restore
+    - remove_existing_containers
 
 ## Compose down
 - name: Go to local git repo compose dir and compose down {{ item.stack }}
@@ -15,7 +16,7 @@
     chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
     cmd: |
       if sudo docker ps | grep {{ item.stack }} -q; then
-        sudo -E docker compose down
+        sudo -E docker compose down {{ item.options | regex_replace('reverse-proxy') }}
       fi
   when: dir_path.stat.exists
   changed_when: false
@@ -23,6 +24,20 @@
     - never
     - restore_apps
     - restore
+    - remove_existing_containers
+
+## Remove unused images
+- name: Go to local git repo compose dir and remove unused container images
+  ansible.builtin.command:
+    chdir: "{{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }}/git/compose"
+    cmd: |
+      sudo -E docker image prune -f --all
+    # cmd: |
+    #   podman image prune -f --all
+  changed_when: false
+  tags:
+    - never
+    - remove_unused_images
 
 ## Remove the app directory to replace it
 - name: Ensure {{ ansible_env.HOME }}/srv/{{ item.org }}/{{ item.stack }} is removed

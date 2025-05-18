@@ -3,9 +3,9 @@ databases:
     cmd:
       before:
       backup: | 
-        mariadb-dump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
+        mariadb-dump --single-transaction -h ${CONTAINER_HOSTNAME} -u \${MARIADB_USER} -p\${MARIADB_PASSWORD} \${MARIADB_DATABASE} > ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_`date +"%Y%m%d"`.bak
       restore: |
-        ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_*.bak | head -1 | xargs -I {} mariadb -h ${CONTAINER_HOSTNAME} -u \${MYSQL_USER} -p\${MYSQL_PASSWORD} \${MYSQL_DATABASE} < {}
+        ls -t ${CONTAINER_SHARED_VOLUME}/${CONTAINER_NAME}-sqlbkp_*.bak | head -1 | xargs -I {} mariadb -h ${CONTAINER_HOSTNAME} -u \${MARIADB_USER} -p\${MARIADB_PASSWORD} \${MARIADB_DATABASE} < {}
       after:
   - name: mysql
     cmd:

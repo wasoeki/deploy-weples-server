@@ -15,3 +15,6 @@ packages:
   - docker
   - podman
   - podman-compose
+# For security
+  - fail2ban
+  - clamav

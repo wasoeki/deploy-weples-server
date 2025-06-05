@@ -31,21 +31,60 @@
   register: add_identity_key
   when: ssh_identity_key is defined and ssh_user is defined
 
+- name: Create jail.local for fail2ban
+  ansible.builtin.shell: |-
+    cat > /etc/fail2ban/jail.local <<EOF
+    [sshd]
+    enabled = true
+    port = ssh
+    filter = sshd
+    logpath = /var/log/auth.log
+    maxretry = 2
+    findtime = 300
+    bantime = 3600
+    ignoreip = 127.0.0.1
+    EOF
+  notify: Restart fail2ban
+
+# Enable SSH pubkey login
+- name: Enable SSH pubkey login
+  ansible.builtin.lineinfile:
+    dest: "{{ sshd_config }}"
+    regexp: '^(#\s*)?PubkeyAuthentication'
+    line: "PubkeyAuthentication yes"
+  notify: Restart sshd
+
 # Disable empty password login
 - name: Disable empty password login
   ansible.builtin.lineinfile:
     dest: "{{ sshd_config }}"
-    regexp: "^#?PermitEmptyPasswords"
+    regexp: '^(#\s*)?PermitEmptyPasswords'
     line: "PermitEmptyPasswords no"
+  notify: Restart sshd
+
+# Disable SSH root login
+- name: Disable SSH root login
+  ansible.builtin.lineinfile:
+    dest: "{{ sshd_config }}"
+    regexp: '^(#\s*)?PermitRootLogin'
+    line: "PermitRootLogin no"
   notify: Restart sshd
 
 # Disable password login
 - name: Disable password login
   ansible.builtin.lineinfile:
     dest: "{{ sshd_config }}"
-    regexp: '^(#\s*)?PasswordAuthentication '
+    regexp: '^(#\s*)?PasswordAuthentication'
     line: "PasswordAuthentication no"
   when:
     - add_identity_key is succeeded
     - not add_identity_key is skipped
+  notify: Restart sshd
+
+# Max authorized attempts to login
+- name: Max authorized attempts to login
+  ansible.builtin.lineinfile:
+    dest: "{{ sshd_config }}"
+    regexp: '^(#\s*)?MaxAuthTries'
+    line: "MaxAuthTries 3"
   notify: Restart sshd
